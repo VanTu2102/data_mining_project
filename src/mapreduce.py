@@ -117,7 +117,7 @@ class MapReduce(MRJob):
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
             yield (
-                [key, str(pickle.dumps(model))], score.mean()
+                key, [str(score.mean()), str(pickle.dumps(model))]
             )
 
         if key == "SVM":
@@ -128,7 +128,7 @@ class MapReduce(MRJob):
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
             yield (
-                [key, str(pickle.dumps(model))], score.mean()
+                key, [str(score.mean()), str(pickle.dumps(model))]
             )
 
         if key == "Decision Tree":
@@ -139,7 +139,7 @@ class MapReduce(MRJob):
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
             yield (
-                [key, str(pickle.dumps(model))], score.mean()
+                key, [str(score.mean()), str(pickle.dumps(model))]
             )
 
         if key == "Random Forest":
@@ -150,7 +150,7 @@ class MapReduce(MRJob):
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
             yield (
-                [key, str(pickle.dumps(model))], score.mean()
+                key, [str(score.mean()), str(pickle.dumps(model))]
             )
 
         if key == "Logistic Regression":
@@ -161,7 +161,7 @@ class MapReduce(MRJob):
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
             yield (
-                [key, str(pickle.dumps(model))], score.mean()
+                key, [str(score.mean()), str(pickle.dumps(model))]
             )
 
         if key == "Gradient Boosting":
@@ -172,7 +172,7 @@ class MapReduce(MRJob):
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
             yield (
-                [key, str(pickle.dumps(model))], score.mean()
+                key, [str(score.mean()), str(pickle.dumps(model))]
             )
 
         if key == "Naive Bayes":
@@ -191,12 +191,11 @@ class MapReduce(MRJob):
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
             yield (
-                [key, str(pickle.dumps(model))], score.mean()
+                key, [str(score.mean()), str(pickle.dumps(model))]
             )
 
     def reducer_training(self, key, line):
-        
-        yield (key[0], min(line))
+        yield(key,min(line))
 
     def steps(self):
         return [
