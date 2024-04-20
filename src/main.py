@@ -8,7 +8,7 @@ import pandas as pd
 class Main:
     def run(self):
         data = data_preprocessing.etl()
-        # models = model_training.train(data)
+        models = model_training.train(data)
         
         X = pd.DataFrame(
             data,
