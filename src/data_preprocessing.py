@@ -76,7 +76,9 @@ def apri(df, threshold=0.2):
         "Mã giảng viên": [d["Mã giảng viên"] for d in new_data],
         "Số kỹ năng khoá học": [d["Số kỹ năng khoá học"] for d in new_data],
     }
+    d = {}
     for key, value in new_data.items():
+        arr = []
         for item in list(apriori(value, min_support=0.0045, min_confidence=0.05, min_lift=1.1)):
             print(item[0])
             # first index of the inner list
@@ -94,8 +96,15 @@ def apri(df, threshold=0.2):
             print("Confidence: " + str(item[2][0][2]))
             print("Lift: " + str(item[2][0][3]))
             print("=====================================")
-    print(df)
-
+            arr.append([str(item[0]), str(items[0] + " -> " + items[1]), str(item[1]), str(item[2][0][2]), str(item[2][0][3])])
+        if(len(arr)>0):
+            d[key] = arr
+            print(pd.DataFrame(arr))
+    writer = pd.ExcelWriter('./results/association_rule.xlsx')
+    for key, value in d.items():
+        # Write each DataFrame to a separate sheet
+        pd.DataFrame(value, columns=['set', 'Rule', 'Support', 'Confidence', 'Lift']).to_excel(writer, sheet_name=key, index=False)
+    writer.save()
 
 def etl():
     # Mở file data
