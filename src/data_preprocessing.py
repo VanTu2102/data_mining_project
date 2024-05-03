@@ -77,7 +77,23 @@ def apri(df, threshold=0.2):
         "Số kỹ năng khoá học": [d["Số kỹ năng khoá học"] for d in new_data],
     }
     for key, value in new_data.items():
-        print(pd.DataFrame(apriori(value)))
+        for item in list(apriori(value, min_support=0.0045, min_confidence=0.1, min_lift=2)):
+            print(item[0])
+            # first index of the inner list
+            # Contains base item and add item
+            pair = item[0] 
+            items = [x for x in pair]
+            print("Rule: " + items[0] + " -> " + items[1])
+
+            #second index of the inner list
+            print("Support: " + str(item[1]))
+
+            #third index of the list located at 0th
+            #of the third index of the inner list
+
+            print("Confidence: " + str(item[2][0][2]))
+            print("Lift: " + str(item[2][0][3]))
+            print("=====================================")
     print(df)
 
 
@@ -117,7 +133,7 @@ def etl():
     data_return = last_data.loc[last_data['Có tái tục không'] == 1]
     data_non_return = last_data.loc[last_data['Có tái tục không'] == 0]
     
-    apri(data_return)
+    apri(last_data)
 
     # print(last_data)
     # print(data_return.describe())

@@ -16,6 +16,7 @@ from sklearn.model_selection import KFold
 import pandas as pd
 import pickle
 
+
 class MapReduce(MRJob):
 
     OUTPUT_PROTOCOL = CsvProtocol
@@ -23,12 +24,8 @@ class MapReduce(MRJob):
     def mapper_etl(self, _, line):
         data = line.replace(", ", "-").split(",")
         if data[0] != "Mã học viên":
-            data[1] = int(
-                datetime.datetime.strptime(data[1], "%m/%d/%Y %H:%M").timestamp()
-            )
-            data[2] = int(
-                datetime.datetime.strptime(data[2], "%m/%d/%Y %H:%M").timestamp()
-            )
+            data[1] = int(datetime.datetime.strptime(data[1], "%Y-%m-%d").timestamp())
+            data[2] = int(datetime.datetime.strptime(data[2], "%Y-%m-%d").timestamp())
             data[5] = int(data[5]) / 1000000
             data[6] = data[6].replace(" buổi", "")
             data[6] = data[6].replace("tháng", "30")
@@ -36,12 +33,12 @@ class MapReduce(MRJob):
             data[7] = data[7].replace("Đạt", "1")
             if data[7] == "":
                 data[7] = 0
-            data[8] = data[8].replace("%", "")
-            if data[8] == "":
-                data[8] = 0
+            data[9] = data[9].replace("%", "")
+            if data[9] == "":
+                data[9] = 0
             data[6] = int(data[6])
             data[7] = int(data[7])
-            data[8] = int(data[8])
+            data[9] = int(data[9])
             yield (data[0], ",".join(str(x) for x in data))
         else:
             yield (["HEADER"], ",".join(str(x) for x in data))
@@ -62,35 +59,52 @@ class MapReduce(MRJob):
                 k = int(datum[i][2])
                 datum[i][1] = datetime.datetime.fromtimestamp(
                     int(datum[i][1])
-                ).strftime("%m/%d/%Y %H:%M")
+                ).strftime("%Y-%m-%d")
                 datum[i][2] = datetime.datetime.fromtimestamp(
                     int(datum[i][2])
-                ).strftime("%m/%d/%Y %H:%M")
+                ).strftime("%Y-%m-%d")
                 datum[i][5] = float(datum[i][5])
                 datum[i][6] = int(datum[i][6])
                 datum[i][7] = int(datum[i][7])
-                datum[i][8] = int(datum[i][8])
-                if datum[i][10] != "":
-                    datum[i][10] = int(datum[i][10])
+                datum[i][9] = int(datum[i][9])
+                if datum[i][13] != "":
+                    datum[i][13] = int(float(datum[i][13]))
                     yield (
                         [key, k],
                         [
                             datum[i][5],
                             datum[i][7],
-                            datum[i][8],
-                            datum[i][10],
-                            datum[i][16],
-                            datum[i][17],
+                            datum[i][9],
+                            datum[i][13],
+                            datum[i][21],
+                            datum[i][22],
                         ],
                     )
         # else:
         #     datum[0].append("Lần đăng ký")
         #     datum[0].append("Có tái tục không")
-        #     yield (["HEADER"], [datum[0][0], datum[0][5], datum[0][7], datum[0][8], datum[0][10], datum[0][16], datum[0][17]])
+        #     yield (["HEADER"], [datum[0][0], datum[0][5], datum[0][7], datum[0][9], datum[0][13], datum[0][21], datum[0][22]])
+        
+        for k, v in {
+            "Khóa học": [datum[i][3] for i in range(len(datum))],
+            "Người đăng ký": [datum[i][4] for i in range(len(datum))],
+            "Khuyến mãi (khoá tiếp theo))": [
+                datum[i][9]
+             for i in range(len(datum))],
+            "Số kỹ năng học viên muốn đăng ký(nghe, nói, đọc, viết)": [
+                datum[i][10]
+             for i in range(len(datum))],
+            "Mã giảng viên": [datum[i][12] for i in range(len(datum))],
+            "Số kỹ năng khoá học": [datum[i][20] for i in range(len(datum))],
+        }.items():
+            yield (["Apriori", k], v)
 
     def reducer_etl(self, key, line):
         for row in line:
-            yield (None, row)
+            if key[0] != "Apriori":
+                yield (None, row)
+            else:
+                yield (key, line)
 
     def mapper_training(self, key, line):
         yield ("KNN", line)
@@ -111,73 +125,75 @@ class MapReduce(MRJob):
         rskf = KFold(n_splits=10, shuffle=True)
         if key == "KNN":
             model = KNeighborsClassifier()
-            X_train, X_test, y_train, y_test = train_test_split(X, y.to_numpy().flatten(), test_size=0.5)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y.to_numpy().flatten(), test_size=0.5
+            )
             # Huấn luyện mô hình
             model.fit(X_train, y_train)
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
-            yield (
-                key, [str(score.mean()), str(pickle.dumps(model))]
-            )
+            yield (key, [str(score.mean()), str(pickle.dumps(model))])
 
         if key == "SVM":
             model = SVC()
-            X_train, X_test, y_train, y_test = train_test_split(X, y.to_numpy().flatten(), test_size=0.5)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y.to_numpy().flatten(), test_size=0.5
+            )
             # Huấn luyện mô hình
             model.fit(X_train, y_train)
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
-            yield (
-                key, [str(score.mean()), str(pickle.dumps(model))]
-            )
+            yield (key, [str(score.mean()), str(pickle.dumps(model))])
 
         if key == "Decision Tree":
             model = DecisionTreeClassifier()
-            X_train, X_test, y_train, y_test = train_test_split(X, y.to_numpy().flatten(), test_size=0.5)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y.to_numpy().flatten(), test_size=0.5
+            )
             # Huấn luyện mô hình
             model.fit(X_train, y_train)
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
-            yield (
-                key, [str(score.mean()), str(pickle.dumps(model))]
-            )
+            yield (key, [str(score.mean()), str(pickle.dumps(model))])
 
         if key == "Random Forest":
             model = RandomForestClassifier()
-            X_train, X_test, y_train, y_test = train_test_split(X, y.to_numpy().flatten(), test_size=0.5)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y.to_numpy().flatten(), test_size=0.5
+            )
             # Huấn luyện mô hình
             model.fit(X_train, y_train)
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
-            yield (
-                key, [str(score.mean()), str(pickle.dumps(model))]
-            )
+            yield (key, [str(score.mean()), str(pickle.dumps(model))])
 
         if key == "Logistic Regression":
             model = LogisticRegression()
-            X_train, X_test, y_train, y_test = train_test_split(X, y.to_numpy().flatten(), test_size=0.45)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y.to_numpy().flatten(), test_size=0.45
+            )
             # Huấn luyện mô hình
             model.fit(X_train, y_train)
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
-            yield (
-                key, [str(score.mean()), str(pickle.dumps(model))]
-            )
+            yield (key, [str(score.mean()), str(pickle.dumps(model))])
 
         if key == "Gradient Boosting":
             model = GradientBoostingClassifier()
-            X_train, X_test, y_train, y_test = train_test_split(X, y.to_numpy().flatten(), test_size=0.25)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y.to_numpy().flatten(), test_size=0.25
+            )
             # Huấn luyện mô hình
             model.fit(X_train, y_train)
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
-            yield (
-                key, [str(score.mean()), str(pickle.dumps(model))]
-            )
+            yield (key, [str(score.mean()), str(pickle.dumps(model))])
 
         if key == "Naive Bayes":
             model = GaussianNB()
-            X_train, X_test, y_train, y_test = train_test_split(X, y.to_numpy().flatten(), test_size=0.95)
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y.to_numpy().flatten(), test_size=0.95
+            )
             # Huấn luyện mô hình
             model.fit(X_train, y_train)
             # đánh giá trên tệp validation
@@ -190,12 +206,10 @@ class MapReduce(MRJob):
                 model.partial_fit(X_train, y_train)
             # đánh giá trên tệp validation
             score = cross_val_score(model, X_train, y_train, cv=5)
-            yield (
-                key, [str(score.mean()), str(pickle.dumps(model))]
-            )
+            yield (key, [str(score.mean()), str(pickle.dumps(model))])
 
     def reducer_training(self, key, line):
-        yield(key,min(line))
+        yield (key, min(line))
 
     def steps(self):
         return [
@@ -204,11 +218,11 @@ class MapReduce(MRJob):
                 combiner=self.combiner_etl,
                 reducer=self.reducer_etl,
             ),
-            MRStep(
-                mapper=self.mapper_training,
-                combiner=self.combine_training,
-                reducer=self.reducer_training,
-            ),
+            # MRStep(
+            #     mapper=self.mapper_training,
+            #     combiner=self.combine_training,
+            #     reducer=self.reducer_training,
+            # ),
         ]
 
 
