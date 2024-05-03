@@ -15,6 +15,7 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.model_selection import KFold
 import pandas as pd
 import pickle
+from apyori import apriori, load_transactions
 
 
 class MapReduce(MRJob):
@@ -84,36 +85,50 @@ class MapReduce(MRJob):
         #     datum[0].append("Lần đăng ký")
         #     datum[0].append("Có tái tục không")
         #     yield (["HEADER"], [datum[0][0], datum[0][5], datum[0][7], datum[0][9], datum[0][13], datum[0][21], datum[0][22]])
-        
-        for k, v in {
-            "Khóa học": [datum[i][3] for i in range(len(datum))],
-            "Người đăng ký": [datum[i][4] for i in range(len(datum))],
-            "Khuyến mãi (khoá tiếp theo))": [
-                datum[i][9]
-             for i in range(len(datum))],
-            "Số kỹ năng học viên muốn đăng ký(nghe, nói, đọc, viết)": [
-                datum[i][10]
-             for i in range(len(datum))],
-            "Mã giảng viên": [datum[i][12] for i in range(len(datum))],
-            "Số kỹ năng khoá học": [datum[i][20] for i in range(len(datum))],
-        }.items():
-            yield (["Apriori", k], v)
+
+        if key[0] != "HEADER":
+            for k, v in {
+                "Khóa học": [datum[i][3] for i in range(len(datum))],
+                "Người đăng ký": [datum[i][4] for i in range(len(datum))],
+                "Khuyến mãi (khoá tiếp theo))": [
+                    datum[i][9] for i in range(len(datum))
+                ],
+                "Số kỹ năng học viên muốn đăng ký(nghe, nói, đọc, viết)": [
+                    datum[i][10] for i in range(len(datum))
+                ],
+                "Mã giảng viên": [datum[i][12] for i in range(len(datum))],
+                "Số kỹ năng khoá học": [datum[i][20] for i in range(len(datum))],
+            }.items():
+                yield (["Apriori", k], v)
 
     def reducer_etl(self, key, line):
         for row in line:
             if key[0] != "Apriori":
                 yield (None, row)
             else:
-                yield (key, line)
+                v = ""
+                for item in list(
+                    apriori(line, min_support=0.0045, min_confidence=0.05, min_lift=1.1)
+                ):
+                    pair = item[0]
+                    items = [x for x in pair]
+                    v += "Rule: " + items[0] + " -> " + items[1] + "\n"
+                    v += "Support: " + str(item[1]) + "\n"
+
+                    v += "Confidence: " + str(item[2][0][2]) + "\n"
+                    v += "Lift: " + str(item[2][0][3]) + "\n"
+                    v += "=====================================\n"
+                yield (key, ''.join(v))
 
     def mapper_training(self, key, line):
-        yield ("KNN", line)
-        yield ("SVM", line)
-        yield ("Decision Tree", line)
-        yield ("Random Forest", line)
-        yield ("Logistic Regression", line)
-        yield ("Gradient Boosting", line)
-        yield ("Naive Bayes", line)
+        if key[0] != "Apriori":
+            yield ("KNN", line)
+            yield ("SVM", line)
+            yield ("Decision Tree", line)
+            yield ("Random Forest", line)
+            yield ("Logistic Regression", line)
+            yield ("Gradient Boosting", line)
+            yield ("Naive Bayes", line)
 
     def combine_training(self, key, lines):
         df = pd.DataFrame([[float(i) for i in t] for t in lines])
@@ -218,11 +233,11 @@ class MapReduce(MRJob):
                 combiner=self.combiner_etl,
                 reducer=self.reducer_etl,
             ),
-            # MRStep(
-            #     mapper=self.mapper_training,
-            #     combiner=self.combine_training,
-            #     reducer=self.reducer_training,
-            # ),
+            MRStep(
+                mapper=self.mapper_training,
+                combiner=self.combine_training,
+                reducer=self.reducer_training,
+            ),
         ]
 
 

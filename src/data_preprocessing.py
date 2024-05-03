@@ -77,7 +77,7 @@ def apri(df, threshold=0.2):
         "Số kỹ năng khoá học": [d["Số kỹ năng khoá học"] for d in new_data],
     }
     for key, value in new_data.items():
-        for item in list(apriori(value, min_support=0.0045, min_confidence=0.1, min_lift=2)):
+        for item in list(apriori(value, min_support=0.0045, min_confidence=0.05, min_lift=1.1)):
             print(item[0])
             # first index of the inner list
             # Contains base item and add item
