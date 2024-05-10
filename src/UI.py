@@ -4,25 +4,12 @@
 # from kivy.uix.button import Button
 # from kivy.uix.behaviors import ButtonBehavior
 from main import Main
-
-# class Filechooser(BoxLayout):
-# 	def select(self, *args):
-# 		self.label.text = args[1][0]
-# 		self.ids['Button_Select'].ids['path'] = self.label.text
-# 		print(self.label.text, self.ids['Button_Select'])
-
-# class app(App):
-# 	def build(self):
-# 		return Filechooser()
-
-# if __name__ == '__main__':
-# 	app().run()
-
 from kivy.app import App
 from kivy.uix.floatlayout import FloatLayout
 from kivy.factory import Factory
 from kivy.properties import ObjectProperty
 from kivy.uix.popup import Popup
+import pandas as pd
 
 import os
 
@@ -42,6 +29,7 @@ class Root(FloatLayout):
     loadfile = ObjectProperty(None)
     savefile = ObjectProperty(None)
     text_input = ObjectProperty(None)
+    pd = ObjectProperty(None)
 
     def dismiss_popup(self):
         self._popup.dismiss()
@@ -66,13 +54,14 @@ class Root(FloatLayout):
         self.dismiss_popup()
 
     def save(self, path, filename):
-        with open(os.path.join(path, filename), 'w', encoding="utf8") as stream:
-            stream.write(self.text_input.text)
-
+        with pd.ExcelWriter(os.path.join(path, filename)) as writer:
+            self.pd.to_excel(writer, index=False)
+            # stream.write(self.pd.to_excel(os.path.join(path, filename), index=False))
         self.dismiss_popup()
         
     def run(self, path):
-        print(Main().run(path))
+        self.pd = Main().run(path)
+        print(self.pd)
 
 class app(App):
     pass
