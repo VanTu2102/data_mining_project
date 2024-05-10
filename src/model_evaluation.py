@@ -33,24 +33,8 @@ def report(data):
             print(f"precision : {precision_score(y_true, y_pred, pos_label=1)}")
             print(f"recall: {recall_score(y_true, y_pred, pos_label=1)}")
             print(f"F1 Score: {f1_score(y_true, y_pred, pos_label=1)}")
-            data["data"]["full"].to_excel("./results/result.xlsx", index=False)
-
-    # for name, model in models["models"].items():
-    #     y_pred = model.predict(models["data"]["X_test"])
-    #     models["data"]["X_test"].insert(len(models["data"]["X_test"].columns), "Dự đoán", y_pred)
-    #     models["data"]["X_test"].insert(len(models["data"]["X_test"].columns), "Có tái tục không", y_true)
-    #     kq = {1: "Có", 0:"Không"}
-    #     models["data"]["X_test"]["Có tái tục không"] = models["data"]["X_test"]["Có tái tục không"].map(kq)
-    #     models["data"]["X_test"]["Dự đoán"] = models["data"]["X_test"]["Dự đoán"].map(kq)
-    #     print(models["data"]["X_test"])
-    #     test = classification_report(y_true, y_pred, output_dict=True)
-    #     reports.append({name: test})
-    #     print(f"Name: {name}")
-    #     print(f"Accuracy: {accuracy_score(y_true, y_pred)}")
-    #     print(f"precision : {precision_score(y_true, y_pred, pos_label=1)}")
-    #     print(f"recall: {recall_score(y_true, y_pred, pos_label=1)}")
-    #     print(f"F1 Score: {f1_score(y_true, y_pred, pos_label=1)}")
-    #     models["data"]["X_test"].to_excel("./results/result.xlsx", index=False)
+            # data["data"]["full"].to_excel("./results/result.xlsx", index=False)
+            return data["data"]["full"]
 
     with open("./results/classification_report.json", "w") as file:
         json.dump({"reports": reports}, file)

@@ -106,9 +106,9 @@ def apri(df, threshold=0.2):
         pd.DataFrame(value, columns=['set', 'Rule', 'Support', 'Confidence', 'Lift']).to_excel(writer, sheet_name=key, index=False)
     writer.save()
 
-def etl():
+def etl(path):
     # Mở file data
-    data_df = pd.read_csv("./data/data.csv", delimiter=",")
+    data_df = pd.read_csv(path, delimiter=",")
 
     # Transform data chuyển dữ liệu về số
     km = {"15%": 15, "8%": 8, "5%": 5, np.nan: np.nan}
@@ -142,7 +142,7 @@ def etl():
     data_return = last_data.loc[last_data['Có tái tục không'] == 1]
     data_non_return = last_data.loc[last_data['Có tái tục không'] == 0]
     
-    apri(last_data)
+    # apri(last_data)
 
     # print(last_data)
     # print(data_return.describe())

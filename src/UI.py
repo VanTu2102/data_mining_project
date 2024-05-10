@@ -1,20 +1,87 @@
-import kivy
-kivy.require('1.10.0')
-  
+# import kivy 
+# from kivy.app import App
+# from kivy.uix.boxlayout import BoxLayout
+# from kivy.uix.button import Button
+# from kivy.uix.behaviors import ButtonBehavior
+from main import Main
+
+# class Filechooser(BoxLayout):
+# 	def select(self, *args):
+# 		self.label.text = args[1][0]
+# 		self.ids['Button_Select'].ids['path'] = self.label.text
+# 		print(self.label.text, self.ids['Button_Select'])
+
+# class app(App):
+# 	def build(self):
+# 		return Filechooser()
+
+# if __name__ == '__main__':
+# 	app().run()
+
 from kivy.app import App
-from kivy.uix.button import Label
-  
-# Inherit Kivy's App class which represents the window
-# for our widgets
-# HelloKivy inherits all the fields and methods
-# from Kivy
-class HelloKivy(App):
-  
-    # This returns the content we want in the window
-    def build(self):
-  
-        # Return a label widget with Hello Kivy
-        return Label(text ="Hello Geeks")
-  
-helloKivy = HelloKivy()
-helloKivy.run()
+from kivy.uix.floatlayout import FloatLayout
+from kivy.factory import Factory
+from kivy.properties import ObjectProperty
+from kivy.uix.popup import Popup
+
+import os
+
+
+class LoadDialog(FloatLayout):
+    load = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+
+
+class SaveDialog(FloatLayout):
+    save = ObjectProperty(None)
+    text_input = ObjectProperty(None)
+    cancel = ObjectProperty(None)
+
+
+class Root(FloatLayout):
+    loadfile = ObjectProperty(None)
+    savefile = ObjectProperty(None)
+    text_input = ObjectProperty(None)
+
+    def dismiss_popup(self):
+        self._popup.dismiss()
+
+    def show_load(self):
+        content = LoadDialog(load=self.load, cancel=self.dismiss_popup)
+        self._popup = Popup(title="Load file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+
+    def show_save(self):
+        content = SaveDialog(save=self.save, cancel=self.dismiss_popup)
+        self._popup = Popup(title="Save file", content=content,
+                            size_hint=(0.9, 0.9))
+        self._popup.open()
+
+    def load(self, path, filename):
+        self.run(os.path.join(path, filename[0]))
+        with open(os.path.join(path, filename[0]), encoding="utf8") as stream:
+            self.text_input.text = stream.read()
+		
+        self.dismiss_popup()
+
+    def save(self, path, filename):
+        with open(os.path.join(path, filename), 'w', encoding="utf8") as stream:
+            stream.write(self.text_input.text)
+
+        self.dismiss_popup()
+        
+    def run(self, path):
+        print(Main().run(path))
+
+class app(App):
+    pass
+
+
+Factory.register('Root', cls=Root)
+Factory.register('LoadDialog', cls=LoadDialog)
+Factory.register('SaveDialog', cls=SaveDialog)
+
+
+if __name__ == '__main__':
+    app().run()
